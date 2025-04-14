@@ -1,23 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Bolt</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+    <h1>Élelmiszeráruház</h1>
+    <input type="file" id="csvInput" accept=".csv">
+    <button id="osszesTermekGomb" disabled>Termékek megjelenítése</button>
+    <button id="vasarlasGomb" disabled>Vásárlás</button>
+    <button id="frissitesGomb" disabled>Frissítés</button>
+    <label for="kategoriaValaszto"> Kategória kiválasztása:</label>
+    <select id="kategoriaValaszto" disabled>
+        <option value="">-- Válassz kategóriát --</option>
+        <option value="Gyümölcs">Gyümölcs</option>
+        <option value="Zöldség">Zöldség</option>
+        <option value="Pékáru">Pékáru</option>
+        <option value="Tejtermék">Tejtermék</option>
+        <option value="Tojás">Tojás</option>
+        <option value="Alapanyag">Alapanyag</option>
+        <option value="Ital">Ital</option>
+        <option value="Édesség">Édesség</option>
+        <option value="Rágcsálnivaló">Rágcsálnivaló</option>
+        <option value="Alkohol">Alkohol</option>
+        <option value="Konzerv">Konzerv</option>
+        <option value="Húsáru">Húsáru</option>
+        <option value="Fagyasztott">Fagyasztott</option>
+    </select>
+    <button id="kategoriaSzuresGomb" disabled>Szűrés</button>
+    <div id="termekLista"></div>
+    <div id="vasarlasEredmeny"></div>
+
     <script>
-        class Termek{
-            constructor(nev, ar, raktarKeszlet, kategoria){
+        var menu = document.querySelector("#kategoriaValaszto")
+        var x = 0
+        class Termek {
+            constructor(nev, ar, raktarkeszlet, kategoria) {
                 this.nev = nev
                 this.ar = ar
-                this.raktarKeszlet = raktarKeszlet
+                this.raktarkeszlet = raktarkeszlet
                 this.kategoria = kategoria
             }
-            megjelenit(){
+
+            megjelenit() {
                 return `${this.nev}, ${this.ar}, ${this.raktarkeszlet}, ${this.kategoria}`
             }
+            megjelenit0() {
+                if (this.kategoria == menu.value) {
+                    return `${this.nev}, ${this.ar}, ${this.raktarkeszlet}, ${this.kategoria}`
+                }
+
+            }
+
+            csokkentraktarkeszlet() {
+                if (this.raktarkeszlet - x > 0) {
+                    this.raktarkeszlet -= x
+                    return `${this.nev} Raktárkészlet: ${this.raktarkeszlet}DB`
+
+                }
+                else {
+                    return `${this.nev} nincs elegendő raktáron!`
+                }
+            }
+
+
         }
+        class Aruhaz {
+            constructor(termekek) {
+                this.termekek = [];
+            }
+
+            termekHozzad(termek) {
+                this.termekek.push(termek)
+
+            }
+
+            osszesTermekMegjelenitese() {
+                return this.termekek.map(termek => termek.megjelenit()).join("<br>")
+            }
+            osszesTermekMegjelenitese0() {
+                return this.termekek.map(termek => termek.megjelenit0()).join("<br>")
+            }
+            termekVasarlas(nev) {
+                const termek = this.termekek.find(t => t.nev === nev)
+                if (termek) {
+                    return termek.csokkentraktarkeszlet()
+                }
+                else {
+                    return `A ${nev} nem található!`
+                }
+            }
+
+        }
+        const aruhaz = new Aruhaz()
+        document.getElementById("csvInput").addEventListener("change", function (event) {
+            const file = event.target.files[0]
+            if (file) {
+                const reader = new FileReader()
+                reader.onload = function (e) {
+                    const csvData = e.target.result
+                    const rows = csvData.split("\n").map(row => row.trim()).filter(row => row.length > 0)
+                    rows.forEach((row, index) => {
+                        if (index > 0) {
+                            const [nev, ar, raktarkeszlet, kategoria] = row.split(",").map(cell => cell.trim());
+                            aruhaz.termekHozzad(new Termek(
+                                nev,
+                                parseInt(ar),
+                                parseInt(raktarkeszlet),
+                                kategoria
+                            ));
+                        }
+
+                    });
+                    document.getElementById("osszesTermekGomb").disabled = false
+                    document.getElementById("vasarlasGomb").disabled = false
+                    document.getElementById("frissitesGomb").disabled = false
+                    document.getElementById("kategoriaValaszto").disabled = false
+                    document.getElementById("kategoriaSzuresGomb").disabled = false
+                    alert("Termék sikeresen importálva!")
+
+
+                }
+                reader.readAsText(file)
+            }
+        })
+        document.getElementById("osszesTermekGomb").addEventListener("click", () => {
+            const termekLista = document.getElementById("termekLista")
+            termekLista.innerHTML = `<h2>Termékek</h2>${aruhaz.osszesTermekMegjelenitese()}`
+        })
+        document.getElementById("frissitesGomb").addEventListener("click", () => {
+            const termekLista = document.getElementById("termekLista")
+            termekLista.innerHTML = `<h2>Termékek</h2>${aruhaz.osszesTermekMegjelenitese()}`
+        })
+        document.getElementById("kategoriaSzuresGomb").addEventListener("click", () => {
+            const termekLista = document.getElementById("termekLista")
+            termekLista.innerHTML = `<h2>Termékek</h2>${aruhaz.osszesTermekMegjelenitese0()}`
+        })
+
+        document.getElementById("vasarlasGomb").addEventListener("click", () => {
+            const vasarlasEredmeny = document.getElementById("vasarlasEredmeny")
+            const termekNev = prompt("Add meg a vásárolni kívánt terméket:")
+            x = parseInt(prompt("Add meg a vásárolni kívánt mennyiséget:"))
+            if (termekNev) {
+                vasarlasEredmeny.innerHTML = `<h2>A vásárlás eredménye</h2>${aruhaz.termekVasarlas(termekNev)}`
+            }
+        })
     </script>
 </body>
+
 </html>
